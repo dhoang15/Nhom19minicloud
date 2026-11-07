@@ -1,0 +1,29 @@
+server {
+  listen 80;
+  server_name _;
+
+  root /usr/share/nginx/html;
+  index index.html;
+
+  charset utf-8;
+
+  # Header nhận diện node 2 phục vụ kiểm thử Load Balancer Round Robin
+  add_header X-Served-By $hostname always;
+
+  location / {
+    try_files $uri $uri/ =404;
+  }
+
+  location ^~ /blog/ {
+    alias /usr/share/nginx/html/blog/;
+    index index.html;
+    autoindex off;
+    try_files $uri $uri/ =404;
+  }
+
+  location = /healthz {
+    access_log off;
+    default_type text/plain;
+    return 200 "OK - web-frontend-server2\n";
+  }
+}

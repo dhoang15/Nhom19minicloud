@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bài 3: Lưu trữ phi cấu trúc với MinIO Object Storage - MyMiniCloud Blog</title>
+  
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --border: #334155;
+      --badge-bg: rgba(56, 189, 248, 0.15);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      padding-bottom: 3rem;
+    }
+    header {
+      background: rgba(15, 23, 42, 0.9);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+    }
+    .nav-container {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .brand span {
+      color: var(--accent);
+    }
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      margin-left: 1.5rem;
+      font-weight: 500;
+    }
+    nav a:hover, nav a.active {
+      color: var(--accent);
+    }
+    .container {
+      max-width: 1080px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+    .hero {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem;
+      margin-bottom: 2.5rem;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--badge-bg);
+      color: var(--accent);
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 0.75rem;
+      color: #ffffff;
+    }
+    h2 {
+      font-size: 1.5rem;
+      margin: 1.5rem 0 1rem;
+      color: #f1f5f9;
+    }
+    p {
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.25rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-body {
+      padding: 1.25rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 0.5rem;
+      text-decoration: none;
+    }
+    .card-title:hover { color: var(--accent); }
+    .btn {
+      display: inline-block;
+      background: var(--accent);
+      color: #0f172a;
+      font-weight: 600;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      text-decoration: none;
+      margin-top: auto;
+      align-self: flex-start;
+    }
+    .btn:hover { background: var(--accent-hover); color: #ffffff; }
+    .btn-outline {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      margin-right: 0.75rem;
+    }
+    .article-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.25rem;
+    }
+    .article-box img {
+      width: 100%;
+      max-height: 380px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin: 1.25rem 0;
+      border: 1px solid var(--border);
+    }
+    ul {
+      margin: 0.75rem 0 1.25rem 1.5rem;
+      color: var(--muted);
+    }
+    li { margin-bottom: 0.4rem; }
+    code {
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    footer {
+      text-align: center;
+      color: var(--muted);
+      margin-top: 3rem;
+      font-size: 0.9rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+    }
+  </style>
+
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="/" class="brand">MyMiniCloud <span>Blog</span></a>
+      <nav>
+        <a href="/">Trang chính</a>
+        <a href="/blog/">Danh mục Blog</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <article class="article-box">
+      <span class="badge">Bài viết 03 &bull; Chủ đề: Lưu trữ Đám mây (Object Storage)</span>
+      <h1>Bài 3: Lưu trữ phi cấu trúc với MinIO Object Storage (S3-Compatible)</h1>
+      <img src="/blog/images/blog3-minio-s3.png" alt="Minh họa MinIO Object Storage">
+
+      <h2>1. Kiến trúc MinIO trong MyMiniCloud</h2>
+      <p><strong>MinIO</strong> đóng vai trò là Object Storage Server tương thích hoàn toàn với giao thức Amazon S3 API. Dịch vụ chạy trên hai cổng tách biệt:</p>
+      <ul>
+        <li><strong>Cổng 9000 (S3 API Endpoint):</strong> Phục vụ các yêu cầu đọc/ghi đối tượng từ ứng dụng, MinIO Client (<code>mc</code>) hoặc truy cập trực tiếp qua URL public object.</li>
+        <li><strong>Cổng 9001 (Web Console):</strong> Cung cấp giao diện quản trị trực quan để quản lý Buckets, Objects, Access Policies và giám sát dung lượng.</li>
+        <li><strong>Lưu trữ bền vững (Persistent Volume):</strong> Thư mục <code>./object-storage-server/data</code> trên máy chủ host được ánh xạ vào <code>/data</code> bên trong container, đảm bảo dữ liệu không bị mất khi khởi động lại container.</li>
+      </ul>
+
+      <h2>2. Thiết kế hai Bucket: profile-pics và documents</h2>
+      <p>Theo yêu cầu mở rộng của đề tài, hệ thống tổ chức dữ liệu phi cấu trúc thành các bucket chuyên biệt:</p>
+      <ul>
+        <li><strong>Bucket <code>profile-pics</code>:</strong> Lưu trữ ảnh đại diện cá nhân (<code>avatar.jpg</code>). Bucket này được thiết lập chính sách truy cập <code>public</code> (anonymous download) để trình duyệt có thể hiển thị trực tiếp ảnh qua đường dẫn <code>http://localhost:9000/profile-pics/avatar.jpg</code>.</li>
+        <li><strong>Bucket <code>documents</code>:</strong> Lưu trữ tệp PDF báo cáo cuối kỳ (<code>bao-cao-cuoi-ky-nhom19.pdf</code>). Bucket có thể giữ ở chế độ riêng tư (<code>private</code>, truy cập qua Presigned URL) hoặc cấp quyền tải xuống để kiểm thử.</li>
+      </ul>
+
+      <div style="margin-top: 2rem;">
+        <a href="/" class="btn btn-outline">&larr; Quay lại Trang chính (Home)</a>
+        <a href="/blog/" class="btn btn-outline">Về trang danh sách Blog</a>
+        <a href="/blog/blog1.html" class="btn">Xem lại Bài 1 &rarr;</a>
+      </div>
+    </article>
+  </main>
+</body>
+</html>
