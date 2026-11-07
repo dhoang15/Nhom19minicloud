@@ -1,0 +1,6 @@
+# Không commit file biến môi trường chứa mật khẩu/secret thật
+.env
+
+# Không commit dữ liệu runtime phát sinh của MinIO Object Storage
+object-storage-server/data/*
+!object-storage-server/data/.gitkeep

@@ -1,0 +1,31 @@
+server {
+  listen 80;
+  server_name _;
+
+  root /usr/share/nginx/html;
+  index index.html;
+
+  charset utf-8;
+
+  # Header nhận diện node phục vụ kiểm thử Load Balancer và debug
+  add_header X-Served-By $hostname always;
+
+  location / {
+    try_files $uri $uri/ =404;
+  }
+
+  # Phục vụ chuyên mục Blog qua alias (bắt buộc có dấu / ở cuối)
+  location ^~ /blog/ {
+    alias /usr/share/nginx/html/blog/;
+    index index.html;
+    autoindex off;
+    try_files $uri $uri/ =404;
+  }
+
+  # Endpoint kiểm tra trạng thái cho Prometheus / Load Balancer
+  location = /healthz {
+    access_log off;
+    default_type text/plain;
+    return 200 "OK - web-frontend-server\n";
+  }
+}
