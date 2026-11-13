@@ -1,6 +1,6 @@
 
 services:
-  #1. Prometheus
+  # 1. Prometheus
   prometheus:
     image: prom/prometheus:latest
     container_name: monitoring-prometheus-server

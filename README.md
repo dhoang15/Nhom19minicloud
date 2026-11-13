@@ -6,7 +6,7 @@ MiniCloud mô phỏng 9 vai trò máy chủ bằng Docker Compose: Web, Applicat
 
 - Mỗi service có thư mục riêng với source/configuration/Dockerfile của service đó.
 - `docker-compose.yml`, `.env.example` và `README.md` ở thư mục gốc là điểm vào chung.
-- Compose phụ cho demo Web/Storage và Monitoring nằm trong `compose/`; dùng compose gốc để chạy toàn stack.
+- Compose phụ cho demo Web/Storage nằm trong `web-frontend-server/`; compose Monitoring nằm trong `monitoring-grafana-dashboard-server/`. Dùng compose gốc để chạy toàn stack.
 - SQL khởi tạo nằm trong `relational-database-server/init/`.
 - Hướng dẫn, kiến trúc và báo cáo nằm trong `docs/`.
 - Đề bài gốc `Báo Cáo Cuối Kỳ.docx` được giữ nguyên ở thư mục gốc; tài liệu dự án nằm trong `docs/`.
