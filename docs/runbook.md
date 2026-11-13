@@ -4,7 +4,7 @@
 
 ```powershell
 Copy-Item .env.example .env
-# Sửa .env: thay mọi giá trị CHANGE_ME.
+# Sửa .env: điền các biến bắt buộc đang để trống; không commit file này.
 docker compose up --build -d
 docker compose ps
 docker compose logs --tail 100
@@ -74,7 +74,7 @@ docker run --rm --network cloud-net busybox:1.36 nslookup app-backend.cloud.loca
 
 ## Docker Hub và AWS EC2
 
-Trước khi push, sửa `DOCKERHUB_USERNAME` trong `.env` thành đúng username Docker Hub hoặc namespace organization mà tài khoản của bạn có quyền **write**. Giá trị mẫu `your-dockerhub-username` không dùng để push. Nếu dùng organization, cần quyền ghi vào từng repository (hoặc tạo các repository trong organization trước).
+Trước khi push, điền `DOCKERHUB_USERNAME` trong `.env` bằng username Docker Hub hoặc namespace organization mà tài khoản của bạn có quyền **write**. Nếu dùng organization, cần quyền ghi vào từng repository (hoặc tạo các repository trong organization trước).
 
 ```powershell
 $dockerHubUser = 'your-dockerhub-username'

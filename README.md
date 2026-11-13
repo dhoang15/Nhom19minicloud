@@ -13,7 +13,7 @@ MiniCloud mô phỏng 9 vai trò máy chủ bằng Docker Compose: Web, Applicat
 
 ## Chạy local (PowerShell)
 
-1. Tạo `.env` từ `.env.example`, sau đó thay mọi giá trị `CHANGE_ME` bằng giá trị riêng:
+1. Tạo `.env` từ `.env.example`, sau đó điền các biến bắt buộc đang để trống bằng giá trị riêng. Không commit `.env`:
 
    ```powershell
    Copy-Item .env.example .env
