@@ -1,13 +1,26 @@
-from flask import Flask, jsonify, request, Response
-import time, requests, os, json, pymysql
-from jose import jwt
+import os
+import time
 
-ISSUER = "http://localhost:8081/realms/realm_52300070"
-AUDIENCE = "account"
-JWKS_URL = "http://authentication-identity-server:8080/realms/realm_52300070/protocol/openid-connect/certs"
+import pymysql
+import requests
+from flask import Flask, jsonify, request
+from jose import jwt
+from jose.exceptions import JWTError
+
+ISSUER = os.getenv(
+    "OIDC_ISSUER",
+    "http://localhost:8081/realms/realm_52300070",
+)
+AUDIENCE = os.getenv("OIDC_AUDIENCE", "flask-app")
+JWKS_URL = os.getenv(
+    "OIDC_JWKS_URL",
+    "http://authentication-identity-server:8080/realms/"
+    "realm_52300070/protocol/openid-connect/certs",
+)
 
 _JWKS = None
 _TS = 0
+
 
 def get_jwks():
     global _JWKS, _TS
@@ -19,35 +32,49 @@ def get_jwks():
         _TS = now
     return _JWKS
 
+
 def get_signing_key(token: str):
+    global _JWKS, _TS
     jwks = get_jwks()
     unverified_header = jwt.get_unverified_header(token)
     kid = unverified_header.get("kid")
     for key in jwks["keys"]:
         if key.get("kid") == kid:
             return key
-    raise Exception("No matching JWK found for kid: " + str(kid))
+    _JWKS = None
+    _TS = 0
+    jwks = get_jwks()
+    for key in jwks["keys"]:
+        if key.get("kid") == kid:
+            return key
+    raise JWTError("No matching signing key found")
+
 
 def get_db_connection():
-    conn = pymysql.connect(
-        host="relational-database-server",
-        user="root",
-        password="root",
-        database="studentdb",
+    return pymysql.connect(
+        host=os.getenv("DB_HOST", "relational-database-server"),
+        port=int(os.getenv("DB_PORT", "3306")),
+        user=os.getenv("DB_USER", "root"),
+        password=os.environ["DB_PASSWORD"],
+        database=os.getenv("DB_NAME", "studentdb"),
         cursorclass=pymysql.cursors.DictCursor,
-        charset="utf8mb4"
+        charset="utf8mb4",
+        connect_timeout=5,
     )
-    return conn
+
 
 app = Flask(__name__)
+
 
 @app.get("/")
 def home():
     return jsonify(message="MiniCloud Backend Server is running successfully!")
 
+
 @app.get("/hello")
 def hello():
     return jsonify(message="Hello from App Server!")
+
 
 @app.get("/secure")
 def secure():
@@ -68,27 +95,42 @@ def secure():
             message="Secure resource OK",
             preferred_username=payload.get("preferred_username"),
         )
-    except Exception as e:
-        print("JWT error:", repr(e))
-        return jsonify(error=str(e)), 401
+    except requests.RequestException:
+        app.logger.exception("Unable to retrieve the identity provider signing keys")
+        return jsonify(error="Identity provider is unavailable"), 503
+    except (JWTError, KeyError, TypeError, ValueError):
+        app.logger.info("Rejected an invalid bearer token")
+        return jsonify(error="Invalid bearer token"), 401
+
+
+@app.get("/student")
+def student():
+    return query_students(
+        "SELECT id, student_id, fullname AS name, dob, major, gpa "
+        "FROM students ORDER BY id"
+    )
+
 
 @app.get("/students-db")
 def students_db():
-    conn = get_db_connection()
+    return query_students("SELECT * FROM students ORDER BY id")
+
+
+def query_students(query):
+    conn = None
     try:
+        conn = get_db_connection()
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM students")
+            cursor.execute(query)
             rows = cursor.fetchall()
-            
-            # Format JSON xuống dòng (indent=4) và hiển thị tiếng Việt có dấu (ensure_ascii=False)
-            json_output = json.dumps(rows, ensure_ascii=False, indent=4)
-            return Response(json_output, mimetype='application/json')
-            
-    except Exception as e:
-        print("DB error:", e)
-        return jsonify({"error": str(e)}), 500
+        return jsonify(rows)
+    except pymysql.MySQLError:
+        app.logger.exception("Unable to query the student database")
+        return jsonify(error="Student database is unavailable"), 503
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
+
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8081)
+    app.run(host="0.0.0.0", port=8081, threaded=True)

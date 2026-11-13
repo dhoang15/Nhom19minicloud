@@ -1,0 +1,56 @@
+{
+  "realm": "realm_52300070",
+  "enabled": true,
+  "displayName": "MyMiniCloud - Nhóm 19",
+  "clients": [
+    {
+      "clientId": "flask-app",
+      "name": "Flask Application",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "implicitFlowEnabled": false,
+      "redirectUris": [
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "webOrigins": [
+        "http://localhost",
+        "http://127.0.0.1"
+      ],
+      "protocolMappers": [
+        {
+          "name": "flask-app audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "flask-app",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "sv01",
+      "enabled": true,
+      "email": "sv01@example.com",
+      "emailVerified": true,
+      "firstName": "Sinh vien",
+      "lastName": "01"
+    },
+    {
+      "username": "sv02",
+      "enabled": true,
+      "email": "sv02@example.com",
+      "emailVerified": true,
+      "firstName": "Sinh vien",
+      "lastName": "02"
+    }
+  ]
+}

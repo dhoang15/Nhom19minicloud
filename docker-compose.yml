@@ -1,0 +1,296 @@
+name: minicloud
+
+services:
+  web-frontend-server:
+    build: ./web-frontend-server
+    image: ${DOCKERHUB_USERNAME:-nhom19minicloud}/web:${IMAGE_TAG:-dev}
+    container_name: web-frontend-server
+    hostname: web-frontend-server1
+    ports:
+      - "127.0.0.1:${WEB1_PORT:-18080}:80"
+    networks:
+      cloud-net:
+        ipv4_address: 10.10.10.10
+        aliases:
+          - web-frontend-server1
+          - web
+    restart: unless-stopped
+
+  web-frontend-server2:
+    build: ./web-frontend-server2
+    image: ${DOCKERHUB_USERNAME:-nhom19minicloud}/web2:${IMAGE_TAG:-dev}
+    container_name: web-frontend-server2
+    hostname: web-frontend-server2
+    ports:
+      - "127.0.0.1:${WEB2_PORT:-18082}:80"
+    networks:
+      cloud-net:
+        ipv4_address: 10.10.10.11
+    restart: unless-stopped
+
+  application-backend-server:
+    build: ./application-backend-server
+    image: ${DOCKERHUB_USERNAME:-nhom19minicloud}/app:${IMAGE_TAG:-dev}
+    container_name: application-backend-server
+    hostname: application-backend-server
+    environment:
+      DB_HOST: relational-database-server
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD in .env}
+      DB_NAME: studentdb
+      OIDC_ISSUER: ${KEYCLOAK_HOSTNAME_URL:-http://localhost:18081}/realms/realm_52300070
+      OIDC_JWKS_URL: http://authentication-identity-server:8080/realms/realm_52300070/protocol/openid-connect/certs
+      OIDC_AUDIENCE: flask-app
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${APP_PORT:-18085}:8081"
+    networks:
+      cloud-net:
+        ipv4_address: 10.10.10.20
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/hello', timeout=3)"
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  database:
+    image: mariadb:11.4
+    container_name: relational-database-server
+    hostname: relational-database-server
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD in .env}
+      MARIADB_DATABASE: studentdb
+    volumes:
+      - ./relational-database-server/init:/docker-entrypoint-initdb.d:ro
+      - database-data:/var/lib/mysql
+    ports:
+      - "127.0.0.1:${DB_PORT:-13306}:3306"
+    networks:
+      cloud-net:
+        ipv4_address: 10.10.10.30
+        aliases:
+          - db
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  authentication-identity-server:
+    image: quay.io/keycloak/keycloak:26.3.3
+    container_name: authentication-identity-server
+    hostname: authentication-identity-server
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:?Set KC_BOOTSTRAP_ADMIN_USERNAME in .env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?Set KC_BOOTSTRAP_ADMIN_PASSWORD in .env}
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME_URL:-http://localhost:18081}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./authentication-identity-server/realm:/opt/keycloak/data/import:ro
+      - keycloak-data:/opt/keycloak/data
+    ports:
+      - "127.0.0.1:${KEYCLOAK_PORT:-18081}:8080"
+    networks:
+      cloud-net:
+        ipv4_address: 10.10.10.40
+        aliases:
+          - keycloak
+    restart: unless-stopped
+
+  keycloak-user-init:
+    build: ./authentication-identity-server
+    image: ${DOCKERHUB_USERNAME:-nhom19minicloud}/keycloak-init:${IMAGE_TAG:-dev}
+    container_name: keycloak-user-init
+    depends_on:
+      - authentication-identity-server
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:?Set KC_BOOTSTRAP_ADMIN_USERNAME in .env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?Set KC_BOOTSTRAP_ADMIN_PASSWORD in .env}
+      SV01_PASSWORD: ${SV01_PASSWORD:?Set SV01_PASSWORD in .env}
+      SV02_PASSWORD: ${SV02_PASSWORD:?Set SV02_PASSWORD in .env}
+    networks:
+      - cloud-net
+    restart: "no"
+
+  object-storage-server:
+    build: ./object-storage-server
+    image: ${DOCKERHUB_USERNAME:-nhom19minicloud}/minio:RELEASE.2025-10-15T17-29-55Z
+    container_name: object-storage-server
+    hostname: object-storage-server
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+    volumes:
+      - ./object-storage-server/data:/data
+    ports:
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    networks:
+      cloud-net:
+        ipv4_address: 10.10.10.50
+        aliases:
+          - minio
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9000/minio/health/ready >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+  object-storage-init:
+    build: ./object-storage-server
+    image: ${DOCKERHUB_USERNAME:-nhom19minicloud}/minio:RELEASE.2025-10-15T17-29-55Z
+    container_name: object-storage-init
+    depends_on:
+      object-storage-server:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+    volumes:
+      - ./object-storage-server/scripts/init-buckets.sh:/init-buckets.sh:ro
+      - ./object-storage-server/sample-files:/sample-files:ro
+    entrypoint: ["/bin/sh", "/init-buckets.sh"]
+    networks:
+      - cloud-net
+    restart: "no"
+
+  internal-dns-server:
+    image: internetsystemsconsortium/bind9:9.18
+    container_name: internal-dns-server
+    hostname: internal-dns-server
+    ports:
+      - "127.0.0.1:${DNS_PORT:-1053}:53/udp"
+      - "127.0.0.1:${DNS_PORT:-1053}:53/tcp"
+    volumes:
+      - ./internal-dns-server/named.conf:/etc/bind/named.conf:ro
+      - ./internal-dns-server/named.conf.options:/etc/bind/named.conf.options:ro
+      - ./internal-dns-server/named.conf.local:/etc/bind/named.conf.local:ro
+      - ./internal-dns-server/db.cloud.local:/etc/bind/db.cloud.local:ro
+    networks:
+      cloud-net:
+        ipv4_address: 10.10.10.60
+        aliases:
+          - dns-server
+    restart: unless-stopped
+
+  monitoring-node-exporter-server:
+    image: prom/node-exporter:v1.9.1
+    container_name: monitoring-node-exporter-server
+    hostname: monitoring-node-exporter-server
+    ports:
+      - "127.0.0.1:9100:9100"
+    networks:
+      cloud-net:
+        ipv4_address: 10.10.10.70
+    restart: unless-stopped
+
+  web-nginx-exporter1:
+    image: nginx/nginx-prometheus-exporter:1.4.2
+    container_name: web-nginx-exporter1
+    command: ["--nginx.scrape-uri=http://web-frontend-server:80/nginx_status"]
+    depends_on:
+      - web-frontend-server
+    networks:
+      cloud-net:
+        ipv4_address: 10.10.10.73
+    restart: unless-stopped
+
+  web-nginx-exporter2:
+    image: nginx/nginx-prometheus-exporter:1.4.2
+    container_name: web-nginx-exporter2
+    command: ["--nginx.scrape-uri=http://web-frontend-server2:80/nginx_status"]
+    depends_on:
+      - web-frontend-server2
+    networks:
+      cloud-net:
+        ipv4_address: 10.10.10.74
+    restart: unless-stopped
+
+  monitoring-prometheus-server:
+    image: prom/prometheus:v3.5.0
+    container_name: monitoring-prometheus-server
+    hostname: monitoring-prometheus-server
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    volumes:
+      - ./monitoring-prometheus-server/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      cloud-net:
+        ipv4_address: 10.10.10.71
+    depends_on:
+      - monitoring-node-exporter-server
+      - web-nginx-exporter1
+      - web-nginx-exporter2
+    restart: unless-stopped
+
+  monitoring-grafana-dashboard-server:
+    image: grafana/grafana:12.3.0
+    container_name: monitoring-grafana-server
+    hostname: monitoring-grafana-server
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-CHANGE_ME_GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring-grafana-dashboard-server/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring-grafana-dashboard-server/Grafana_Dashboard.json:/var/lib/grafana/dashboards/system-health.json:ro
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+    networks:
+      cloud-net:
+        ipv4_address: 10.10.10.72
+    depends_on:
+      - monitoring-prometheus-server
+    restart: unless-stopped
+
+  api-gateway-proxy-server:
+    build: ./api-gateway-proxy-server
+    image: ${DOCKERHUB_USERNAME:-nhom19minicloud}/gateway:${IMAGE_TAG:-dev}
+    container_name: api-gateway-proxy-server
+    hostname: api-gateway-proxy-server
+    depends_on:
+      - web-frontend-server
+      - web-frontend-server2
+      - application-backend-server
+      - authentication-identity-server
+    ports:
+      - "${GATEWAY_BIND:-127.0.0.1}:${GATEWAY_PORT:-80}:80"
+    networks:
+      cloud-net:
+        ipv4_address: 10.10.10.80
+    restart: unless-stopped
+
+networks:
+  cloud-net:
+    name: cloud-net
+    ipam:
+      config:
+        - subnet: 10.10.10.0/24
+
+volumes:
+  database-data:
+  keycloak-data:
+  prometheus-data:
+  grafana-data:

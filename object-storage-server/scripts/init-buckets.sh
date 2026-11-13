@@ -29,6 +29,8 @@ fi
 if [ -f /sample-files/bao-cao-cuoi-ky-nhom19.pdf ]; then
   echo "[MinIO Init] Uploading bao-cao-cuoi-ky-nhom19.pdf to bucket documents..."
   mc cp /sample-files/bao-cao-cuoi-ky-nhom19.pdf myminio/documents/bao-cao-cuoi-ky-nhom19.pdf
+else
+  echo "[MinIO Init] WARNING: sample PDF is missing; the documents bucket will be empty."
 fi
 
 echo "[MinIO Init] Listing buckets and objects:"

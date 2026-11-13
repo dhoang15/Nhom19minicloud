@@ -26,4 +26,11 @@ server {
     default_type text/plain;
     return 200 "OK - web-frontend-server2\n";
   }
+
+  location = /nginx_status {
+    stub_status;
+    access_log off;
+    allow 10.10.10.0/24;
+    deny all;
+  }
 }

@@ -1,6 +1,28 @@
-# Không commit file biến môi trường chứa mật khẩu/secret thật
+# Secrets and local environment files
 .env
+.env.*
+!.env.example
 
-# Không commit dữ liệu runtime phát sinh của MinIO Object Storage
+# Local Python environments and generated caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Runtime data produced by MinIO
 object-storage-server/data/*
 !object-storage-server/data/.gitkeep
+
+# Editor/OS files and logs
+~$*.docx
+*.log
+.DS_Store
+Thumbs.db
+
+# Original assignment handout; the project report is maintained in docs/
+/Báo Cáo Cuối Kỳ.docx

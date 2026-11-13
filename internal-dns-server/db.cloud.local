@@ -1,0 +1,23 @@
+$TTL 60
+@   IN SOA ns.cloud.local. admin.cloud.local. (
+        2026111301
+        3600
+        900
+        604800
+        60
+)
+    IN NS ns.cloud.local.
+
+ns                      IN A 10.10.10.60
+web-frontend-server     IN A 10.10.10.10
+web-frontend-server1    IN A 10.10.10.10
+web-frontend-server2    IN A 10.10.10.11
+app-backend             IN A 10.10.10.20
+application-backend-server IN A 10.10.10.20
+relational-database-server IN A 10.10.10.30
+db                      IN A 10.10.10.30
+keycloak                IN A 10.10.10.40
+minio                   IN A 10.10.10.50
+prometheus              IN A 10.10.10.71
+grafana                 IN A 10.10.10.72
+api-gateway-proxy-server IN A 10.10.10.80

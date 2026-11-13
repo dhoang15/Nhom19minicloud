@@ -1,7 +1,7 @@
-# File Docker Compose phạm vi Web Frontend (Node 1 & Node 2) và Object Storage (MinIO)
+# Compose subset để chạy riêng Web/MinIO; dùng docker-compose.yml để chạy toàn hệ thống.
+# Không chạy file này đồng thời với docker-compose.yml vì dùng chung container/network.
 # Cách chạy độc lập để kiểm thử phần việc của Kỹ sư Frontend & Storage:
-#   cp .env.example .env   # (và cập nhật giá trị trong .env)
-#   docker compose -f docker-compose.web-storage.yml up -d --build
+#   docker compose --env-file .env -f compose/docker-compose.web-storage.yml up -d --build
 # Hoặc ghép các khối service này vào docker-compose.yml tổng của cả nhóm.
 #
 # LƯU Ý: MinIO đã xóa image minio/minio và minio/mc khỏi Docker Hub (9/2026),
@@ -15,8 +15,8 @@ networks:
 services:
   # 1. Web Frontend Server 1 (Cơ bản + Mở rộng Blog 3 bài viết)
   web-frontend-server:
-    build: ./web-frontend-server
-    image: ${DOCKERHUB_USERNAME:-nhom19minicloud}/web:${WEB_IMAGE_TAG:-dev}
+    build: ../web-frontend-server
+    image: ${DOCKERHUB_USERNAME:-nhom19minicloud}/web:${IMAGE_TAG:-dev}
     container_name: web-frontend-server
     hostname: web-frontend-server1
     networks:
@@ -26,13 +26,13 @@ services:
           - web-frontend-server1
           - web
     ports:
-      - "${WEB1_PORT:-8080}:80"
+      - "${WEB1_PORT:-18080}:80"
     restart: unless-stopped
 
   # 2. Web Frontend Server 2 (Mở rộng 10: Phối hợp kiểm thử Load Balancer Round Robin)
   web-frontend-server2:
-    build: ./web-frontend-server2
-    image: ${DOCKERHUB_USERNAME:-nhom19minicloud}/web2:${WEB_IMAGE_TAG:-dev}
+    build: ../web-frontend-server2
+    image: ${DOCKERHUB_USERNAME:-nhom19minicloud}/web2:${IMAGE_TAG:-dev}
     container_name: web-frontend-server2
     hostname: web-frontend-server2
     networks:
@@ -40,12 +40,12 @@ services:
         aliases:
           - web-frontend-server2
     ports:
-      - "${WEB2_PORT:-8082}:80"
+      - "${WEB2_PORT:-18082}:80"
     restart: unless-stopped
 
   # 5. Object Storage Server (MinIO - Cơ bản + Mở rộng Buckets profile-pics & documents)
   object-storage-server:
-    build: ./object-storage-server
+    build: ../object-storage-server
     image: ${DOCKERHUB_USERNAME:-nhom19minicloud}/minio:RELEASE.2025-10-15T17-29-55Z
     container_name: object-storage-server
     hostname: object-storage-server
@@ -54,7 +54,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Vui long khai bao MINIO_ROOT_USER trong file .env}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Vui long khai bao MINIO_ROOT_PASSWORD trong file .env}
     volumes:
-      - ./object-storage-server/data:/data
+      - ../object-storage-server/data:/data
     ports:
       - "${MINIO_API_PORT:-9000}:9000"
       - "${MINIO_CONSOLE_PORT:-9001}:9001"
@@ -68,7 +68,7 @@ services:
   # Container phụ trợ tự động khởi tạo 3 bucket (demo, profile-pics, documents) và nạp file mẫu
   # Dùng chung image tự build ở trên (đã có sẵn lệnh mc và /bin/sh)
   object-storage-init:
-    build: ./object-storage-server
+    build: ../object-storage-server
     image: ${DOCKERHUB_USERNAME:-nhom19minicloud}/minio:RELEASE.2025-10-15T17-29-55Z
     container_name: object-storage-init
     depends_on:
@@ -77,8 +77,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Vui long khai bao MINIO_ROOT_USER trong file .env}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Vui long khai bao MINIO_ROOT_PASSWORD trong file .env}
     volumes:
-      - ./object-storage-server/scripts/init-buckets.sh:/init-buckets.sh:ro
-      - ./object-storage-server/sample-files:/sample-files:ro
+      - ../object-storage-server/scripts/init-buckets.sh:/init-buckets.sh:ro
+      - ../object-storage-server/sample-files:/sample-files:ro
     entrypoint: ["/bin/sh", "/init-buckets.sh"]
     networks:
       - cloud-net

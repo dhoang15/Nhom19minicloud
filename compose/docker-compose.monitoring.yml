@@ -1,0 +1,42 @@
+
+services:
+  #1. Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: monitoring-prometheus-server
+    hostname: monitoring-prometheus-server
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../monitoring-prometheus-server/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - cloud-net
+    restart: unless-stopped
+
+  #2. Node Exporter
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: monitoring-node-exporter-server
+    hostname: monitoring-node-exporter-server
+    ports:
+      - "9100:9100"
+    networks:
+      cloud-net:
+        aliases:
+          - monitoring-node-exporter-server
+    restart: unless-stopped
+
+  #3. Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: monitoring-grafana-server
+    hostname: monitoring-grafana-server
+    ports:
+      - "3000:3000"
+    networks:
+      - cloud-net
+    restart: unless-stopped
+
+networks:
+  cloud-net:
+    external: true
